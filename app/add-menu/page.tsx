@@ -1,55 +1,81 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import AddMenuForm from '@/components/AddMenuForm';
+import { createCustomMenu } from '@/utils/supabaseMenus';
+import { supabase } from '@/lib/supabase/client';
 import { MenuItem } from '@/types/menu';
-import { saveCustomMenus, getCustomMenus } from '@/utils/storage';
 
 export default function AddMenuPage() {
-  const [customMenus, setCustomMenus] = useState<MenuItem[]>([]);
-  const [success, setSuccess] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    setCustomMenus(getCustomMenus());
+    // ตรวจสอบ Session การเข้าสู่ระบบเมื่อเข้ามาที่หน้านี้
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+      setLoading(false);
+    });
   }, []);
 
-  const handleAddMenu = (newMenu: MenuItem) => {
-    saveCustomMenus([newMenu, ...getCustomMenus()]);
-    setCustomMenus([newMenu, ...customMenus]);
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 3000);
+  // ฟังก์ชันรองรับการส่งข้อมูลจากฟอร์ม (กำหนด Type ชัดเจนป้องกันอาการเอ๋อ)
+  const handleAddMenu = async (formData: Omit<MenuItem, 'id' | 'isDefault' | 'isCustom'>) => {
+    if (!userId) return;
+    try {
+      await createCustomMenu(userId, formData);
+      alert('🚀 บันทึกเมนูอาหารส่วนตัวขึ้นระบบคลาวด์สำเร็จ!');
+      router.push('/menus');
+      router.refresh();
+    } catch (e) {
+      console.error(e);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลลงฐานข้อมูล Supabase');
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex justify-center items-center">
+        <div className="text-center font-bold text-slate-400 animate-pulse">
+          ⏳ ตรวจสอบสถานะและระดับสิทธิ์ผู้ใช้งาน...
+        </div>
+      </div>
+    );
+  }
+
+  // เคสป้องกัน: ถ้ายังไม่ได้ Login จะมีสิทธิ์เห็นแค่หน้าต่างแจ้งเตือนล็อก
+  if (!userId) {
+    return (
+      <div className="max-w-md mx-auto my-16 p-8 bg-white border border-slate-100 rounded-2xl shadow-xl text-center">
+        <span className="text-4xl block mb-3 animate-bounce">🔒</span>
+        <h2 className="text-xl font-black text-slate-800">กรุณาเข้าสู่ระบบก่อนใช้งาน</h2>
+        <p className="text-xs text-slate-400 mt-1 mb-6">
+          ฟีเจอร์การเพิ่มเมนูอาหารส่วนตัวสงวนสิทธิ์ไว้เฉพาะผู้ใช้งานสมาชิกคลาวด์เท่านั้น
+        </p>
+        <Link 
+          href="/login" 
+          className="inline-block w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all shadow-md shadow-blue-500/10"
+        >
+          ลงชื่อเข้าใช้งานที่นี่
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <main className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
+    <main className="max-w-xl mx-auto px-4 py-8 flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-black text-slate-800">➕ เพิ่มเมนูประจำตัว</h1>
-        <p className="text-sm text-slate-500">ไม่มีเมนูโปรดในคลังหรอ? แอดข้อมูลเองไว้สุ่มรอบหน้าได้เลย!</p>
+        <h1 className="text-2xl font-black text-slate-800">➕ เพิ่มเมนูอาหารโปรด</h1>
       </div>
 
-      {success && (
-        <div className="bg-emerald-50 border border-emerald-400 text-emerald-800 font-bold p-3 text-center rounded-xl text-sm animate-fade-in">
-          🚀 เพิ่มเมนูใหม่ลงคลังสุ่มส่วนตัวสำเร็จแล้ว!
-        </div>
-      )}
-
-      <AddMenuForm onAdd={handleAddMenu} />
-
-      {/* Display user's custom menus list */}
-      {customMenus.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-sm font-bold text-slate-500 mb-3">เมนูที่เพิ่มเองทั้งหมด ({customMenus.length})</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {customMenus.map((menu) => (
-              <div key={menu.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <span className="text-xs bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-md mb-1 inline-block">Custom</span>
-                <h4 className="font-bold text-slate-800">{menu.name}</h4>
-                <p className="text-sm font-extrabold text-blue-600 mt-0.5">฿{menu.price}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* เรียกใช้งาน Form Component พร้อมส่งฟังก์ชัน Handle ที่แปลง Type เรียบร้อย */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <AddMenuForm onAddMenu={(data: any) => handleAddMenu(data)} />
+      </div>
     </main>
   );
 }

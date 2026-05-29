@@ -1,21 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { MenuItem, PlaceType, HungerLevelType, Nutrition } from '@/types/menu';
+import { MenuItem, PlaceType, HungerLevelType } from '@/types/menu';
 
+// เปลี่ยนให้รับค่าฟังก์ชันที่มีโครงสร้างยืดหยุ่น หายแดงแน่นอน
 interface AddMenuFormProps {
-  onAdd: (menu: MenuItem) => void;
+  onAddMenu: (data: Omit<MenuItem, 'id'>) => void;
 }
 
-export default function AddMenuForm({ onAdd }: AddMenuFormProps) {
+export default function AddMenuForm({ onAddMenu }: AddMenuFormProps) {
   const [name, setName] = useState('');
-  const [price, setPrice] = useState<number>(60);
+  const [price, setPrice] = useState('');
   const [place, setPlace] = useState<PlaceType>('ordered');
   const [hungerLevel, setHungerLevel] = useState<HungerLevelType>('medium');
-  const [tagsInput, setTagsInput] = useState('');
+  const [tagInput, setTagInput] = useState('');
   const [reason, setReason] = useState('');
-
-  // Nutrition sub-state
+  
   const [carbs, setCarbs] = useState('ปานกลาง');
   const [protein, setProtein] = useState('ปานกลาง');
   const [fat, setFat] = useState('ปานกลาง');
@@ -23,141 +23,161 @@ export default function AddMenuForm({ onAdd }: AddMenuFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name || !price) {
+      alert('กรุณากรอกชื่อเมนูและราคาอาหารให้ครบถ้วน');
+      return;
+    }
 
-    const tags = tagsInput
-      ? tagsInput.split(',').map((t) => t.trim()).filter(Boolean)
-      : [];
+    const tags = tagInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t !== '');
 
-    const newMenu: MenuItem = {
-      id: `custom_${Date.now()}`,
-      name: name.trim(),
-      price: Number(price) || 0,
+    // ส่งโครงสร้างข้อมูลออกไปให้ครบถ้วนตามที่ Omit<MenuItem, 'id'> ต้องการ
+    onAddMenu({
+      name,
+      price: Number(price),
       place,
       hungerLevel,
       tags,
       nutrition: { carbs, protein, fat, veggies },
-      reason: reason.trim() || 'เมนูที่คุณสร้างสรรค์ขึ้นมาเองแบบคูลๆ',
-      isCustom: true,
-    };
+      reason,
+      isDefault: false,
+      isCustom: true
+    });
 
-    onAdd(newMenu);
-
-    // Reset Form
     setName('');
-    setPrice(60);
-    setTagsInput('');
+    setPrice('');
+    setTagInput('');
     setReason('');
   };
 
-  const nutOptions = ['ไม่มี', 'ต่ำ', 'ปานกลาง', 'สูง', 'สูงมาก'];
-
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100 flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">ชื่อเมนูอาหาร *</label>
+        <label className="block text-xs font-bold text-slate-500 mb-1">ชื่ออาหาร *</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2.5 px-4 text-slate-800 font-medium focus:outline-none focus:border-blue-500"
-          placeholder="เช่น ข้าวหมูกรอบคั่วพริกเกลือ"
+          placeholder="เช่น ข้าวผัดอเมริกัน, บะหมี่เกี๊ยวหมูแดง"
+          className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2 px-3 text-slate-800 text-sm font-semibold focus:outline-none focus:border-blue-500"
           required
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">ราคาโดยประมาณ (บาท) *</label>
+          <label className="block text-xs font-bold text-slate-500 mb-1">ราคา (บาท) *</label>
           <input
             type="number"
             value={price}
-            onChange={(e) => setPrice(Math.max(0, parseInt(e.target.value) || 0))}
-            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2.5 px-4 text-slate-800 font-bold text-blue-600 focus:outline-none focus:border-blue-500"
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="เช่น 50"
+            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2 px-3 text-slate-800 text-sm font-semibold focus:outline-none focus:border-blue-500"
             required
-            min={1}
           />
         </div>
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">คีย์เวิร์ด / แท็ก</label>
-          <input
-            type="text"
-            value={tagsInput}
-            onChange={(e) => setTagsInput(e.target.value)}
-            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2.5 px-4 text-slate-800 focus:outline-none focus:border-blue-500"
-            placeholder="หมู, เผ็ด, ข้าว (คั่นด้วยคอมม่า)"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">สถานที่ซื้อ</label>
+          <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่ซื้อ</label>
           <select
             value={place}
             onChange={(e) => setPlace(e.target.value as PlaceType)}
-            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2.5 px-3 text-slate-700 font-semibold focus:outline-none focus:border-blue-500"
+            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2 px-3 text-slate-800 text-sm font-bold focus:outline-none"
           >
-            <option value="7-11">🏪 เซเว่น</option>
+            <option value="ordered">🍳 อาหารตามสั่ง</option>
             <option value="canteen">🏢 โรงอาหาร</option>
-            <option value="ordered">🍳 ตามสั่ง</option>
-            <option value="cooking">👨‍🍳 ทำเอง</option>
+            <option value="7-11">🏪 เซเว่น (7-11)</option>
+            <option value="cooking">👨‍🍳 ทำเองกินเอง</option>
           </select>
-        </div>
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-1">ความอิ่มท้อง</label>
-          <select
-            value={hungerLevel}
-            onChange={(e) => setHungerLevel(e.target.value as HungerLevelType)}
-            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2.5 px-3 text-slate-700 font-semibold focus:outline-none focus:border-blue-500"
-          >
-            <option value="low">น้อย (ของทานเล่น)</option>
-            <option value="medium">กลาง (จานเดียวปกติ)</option>
-            <option value="high">มาก (บุฟเฟต์ / จัดหนัก)</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Nutrition Sub-form */}
-      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-        <span className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">📊 ปริมาณสารอาหาร</span>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-          {([
-            { label: 'คาร์บ', val: carbs, set: setCarbs },
-            { label: 'โปรตีน', val: protein, set: setProtein },
-            { label: 'ไขมัน', val: fat, set: setFat },
-            { label: 'ผัก', val: veggies, set: setVeggies },
-          ]).map((nut) => (
-            <div key={nut.label}>
-              <label className="block text-xs font-bold text-slate-600 mb-1">{nut.label}</label>
-              <select
-                value={nut.val}
-                onChange={(e) => nut.set(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-lg py-1 px-2 text-xs font-medium"
-              >
-                {nutOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            </div>
-          ))}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">เหตุผลที่แนะนำเมนูนี้</label>
+        <label className="block text-xs font-bold text-slate-500 mb-1">ระดับความอิ่มท้อง</label>
+        <div className="grid grid-cols-3 gap-2">
+          {(['low', 'medium', 'high'] as HungerLevelType[]).map((level) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() => setHungerLevel(level)}
+              className={`py-2 text-xs font-bold rounded-xl border-2 transition-all ${
+                hungerLevel === level
+                  ? 'border-blue-600 bg-blue-50 text-blue-600'
+                  : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {level === 'low' ? 'น้อย (เบาๆ)' : level === 'medium' ? 'ปานกลาง' : 'มาก (จุกๆ)'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col gap-2">
+        <span className="block text-[11px] font-black text-slate-400 uppercase tracking-wider">📊 สัดส่วนสารอาหารคร่าวๆ</span>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">คาร์โบไฮเดรต</label>
+            <select value={carbs} onChange={(e) => setCarbs(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-xs text-slate-700">
+              <option value="น้อย">น้อย</option>
+              <option value="ปานกลาง">ปานกลาง</option>
+              <option value="สูง">สูง</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">โปรตีน</label>
+            <select value={protein} onChange={(e) => setProtein(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-xs text-slate-700">
+              <option value="น้อย">น้อย</option>
+              <option value="ปานกลาง">ปานกลาง</option>
+              <option value="สูง">สูง</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">ไขมัน</label>
+            <select value={fat} onChange={(e) => setFat(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-xs text-slate-700">
+              <option value="น้อย">น้อย</option>
+              <option value="ปานกลาง">ปานกลาง</option>
+              <option value="สูง">สูง</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-0.5">ผัก / ใยอาหาร</label>
+            <select value={veggies} onChange={(e) => setVeggies(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-xs text-slate-700">
+              <option value="น้อย">น้อย</option>
+              <option value="ปานกลาง">ปานกลาง</option>
+              <option value="สูง">สูง</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-slate-500 mb-1">แท็ก (คั่นด้วยเครื่องหมายจุลภาค `,` เพื่อแยกแท็ก)</label>
+        <input
+          type="text"
+          value={tagInput}
+          onChange={(e) => setTagInput(e.target.value)}
+          placeholder="เช่น เผ็ด, เมนูเส้น, ไก่"
+          className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2 px-3 text-slate-800 text-sm font-semibold focus:outline-none focus:border-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-slate-500 mb-1">เหตุผลที่แนะนำ (Reason)</label>
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
+          placeholder="เช่น อร่อยได้โปรตีนสูงจากเนื้อเน้นๆ หรือ เมนูเซฟงบตอนสิ้นเดือน"
           rows={2}
-          className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2.5 px-4 text-slate-800 text-sm focus:outline-none focus:border-blue-500"
-          placeholder="ทำไมคนถึงต้องกินเมนูนี้ในงบนี้?"
+          className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2 px-3 text-slate-800 text-sm font-semibold focus:outline-none focus:border-blue-500 resize-none"
         />
       </div>
 
       <button
         type="submit"
-        className="w-full bg-slate-900 hover:bg-slate-800 text-yellow-400 font-black py-3 rounded-xl transition-all shadow-md mt-2 tracking-wide"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-2.5 rounded-xl transition-all shadow-md text-sm mt-2"
       >
-        ➕ บันทึกเมนูอาหารลงคลังสุ่ม
+        ✨ บันทึกเข้าคลังอาหารส่วนตัว
       </button>
     </form>
   );

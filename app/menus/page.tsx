@@ -4,159 +4,143 @@ import { useState, useEffect } from 'react';
 import MenuCard from '@/components/MenuCard';
 import EditMenuModal from '@/components/EditMenuModal';
 import { MenuItem } from '@/types/menu';
-import { getAllMenus, updateMenu, deleteMenu } from '@/utils/storage';
+import { getVisibleMenus, updateUserMenu, overrideDefaultMenu, deleteMenu } from '@/utils/supabaseMenus';
+import { supabase } from '@/lib/supabase/client';
+import Link from 'next/link';
 
 export default function MenusPage() {
+  const [userId, setUserId] = useState<string | undefined>(undefined);
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [placeFilter, setPlaceFilter] = useState<string>('all');
-  const [hungerFilter, setHungerFilter] = useState<string>('all');
-  const [feedbackMessage, setFeedbackMessage] = useState<string>('');
+  const [placeFilter, setPlaceFilter] = useState('all');
+  const [hungerFilter, setHungerFilter] = useState('all');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
 
-  // ควบคุม State สำหรับ Modal การแก้ไข
   const [editingMenu, setEditingMenu] = useState<MenuItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // โหลดคลังเมนูที่ผ่านการกรองบัญชีดำเรียบร้อยแล้ว
-  const loadMenus = () => {
-    setMenus(getAllMenus());
+  const loadMenus = async (uid?: string) => {
+    const list = await getVisibleMenus(uid);
+    setMenus(list);
   };
 
   useEffect(() => {
-    loadMenus();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const uid = session?.user?.id;
+      setUserId(uid);
+      loadMenus(uid);
+    });
   }, []);
 
   const handleEditClick = (menu: MenuItem) => {
+    if (!userId) {
+      alert('🔒 กรุณาเข้าสู่ระบบก่อนเพื่อแก้ไขรายละเอียดเมนูอาหาร');
+      return;
+    }
     setEditingMenu(menu);
     setIsModalOpen(true);
   };
 
-  const handleSaveMenu = (updatedMenu: MenuItem) => {
-    updateMenu(updatedMenu);
-    setIsModalOpen(false);
-    setEditingMenu(null);
-    showFeedback('✏️ อัปเดตข้อมูลเมนูอาหารเรียบร้อยแล้ว!');
-    loadMenus();
-  };
+  const handleSaveMenu = async (updatedMenu: MenuItem) => {
+    if (!userId) return;
 
-  // คอร์ฟังก์ชันการลบ/ซ่อนเมนู
-  const handleDeleteClick = (id: string) => {
-    const targetMenu = menus.find((m) => m.id === id);
-    if (!targetMenu) return;
-
-    const confirmPrompt = targetMenu.isDefault 
-      ? `ต้องการซ่อนเมนูระบบ "${targetMenu.name}" ออกจากการสุ่มใช่หรือไม่?`
-      : `ต้องการลบเมนู "${targetMenu.name}" ออกจากระบบถาวรใช่หรือไม่?`;
-
-    if (confirm(confirmPrompt)) {
-      deleteMenu(id); // สั่งสลายข้อมูลตามเงื่อนไขชั้น Storage
-      showFeedback('🗑️ ลบเมนูอาหารออกจากระบบแล้ว');
-      loadMenus(); // ดึงข้อมูลโครงสร้างผสมก้อนใหม่มาวาด UI ทันที
+    try {
+      if (updatedMenu.isDefault && !updatedMenu.source_menu_id) {
+        await overrideDefaultMenu(userId, updatedMenu.id, updatedMenu);
+      } else {
+        await updateUserMenu(userId, updatedMenu);
+      }
+      setIsModalOpen(false);
+      showFeedback('✏️ บันทึกการแก้ไขข้อมูลลง Cloud เรียบร้อย');
+      loadMenus(userId);
+    } catch (e) {
+      alert('เกิดข้อผิดพลาดในการแก้ข้อมูล');
     }
   };
 
-  // ตัวคุม Feedback Notification แบบตั้งเวลาปิด
-  const showFeedback = (msg: string) => {
-    setFeedbackMessage(msg);
-    setTimeout(() => {
-      setFeedbackMessage('');
-    }, 3000);
+  const handleDeleteClick = async (id: string) => {
+    if (!userId) {
+      alert('🔒 กรุณาเข้าสู่ระบบก่อนเพื่อทำการลบหรือซ่อนเมนูอาหารออกจากการสุ่ม');
+      return;
+    }
+    const target = menus.find(m => m.id === id);
+    if (!target) return;
+
+    if (confirm(`คุณแน่ใจใช่ไหมว่าจะลบ/ซ่อนเมนู "${target.name}"?`)) {
+      await deleteMenu(userId, target);
+      showFeedback('🗑️ จัดการลบ/ซ่อนเมนูอาหารเรียบร้อย');
+      loadMenus(userId);
+    }
   };
 
-  // ตัวกรองการค้นหาของหน้าแสดงผล
-  const filteredMenus = menus.filter((menu) => {
-    const matchesSearch = menu.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPlace = placeFilter === 'all' || menu.place === placeFilter;
-    const matchesHunger = hungerFilter === 'all' || menu.hungerLevel === hungerFilter;
-    return matchesSearch && matchesPlace && matchesHunger;
+  const showFeedback = (msg: string) => {
+    setFeedbackMessage(msg);
+    setTimeout(() => setFeedbackMessage(''), 3000);
+  };
+
+  const filteredMenus = menus.filter((m) => {
+    return m.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (placeFilter === 'all' || m.place === placeFilter) &&
+      (hungerFilter === 'all' || m.hungerLevel === hungerFilter);
   });
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6 relative">
-      
-      {/* แจ้งเตือนลบสำเร็จแบบลอย */}
       {feedbackMessage && (
-        <div className="fixed bottom-5 right-5 bg-slate-900 text-white font-bold text-xs px-4 py-3 rounded-xl shadow-xl border border-blue-500/30 z-50 animate-bounce">
+        <div className="fixed bottom-5 right-5 bg-slate-900 text-white font-bold text-xs px-4 py-3 rounded-xl z-50">
           {feedbackMessage}
         </div>
       )}
 
-      <div>
-        <h1 className="text-2xl font-black text-slate-800">📚 คลังเมนูอาหารทั้งหมด</h1>
-        <p className="text-sm text-slate-500">จัดการรายละเอียดเมนู หรือสั่งลบ/ซ่อนตัวเลือกที่ไม่โปรดปรานออกจากการสุ่มได้ทันที</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          {/* ปรับสีเป็น text-white และคำอธิบายเป็น text-slate-300 ให้ตัดกับธีมหลังสว่างคมชัดชัดเจน */}
+          <h1 className="text-2xl font-black text-white">📚 คลังเมนูอาหารทั้งหมด</h1>
+        </div>
+        {!userId && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-800 font-medium">
+            💡 ต้องการจัดแต่งเมนูเอง? <Link href="/login" className="underline font-bold text-blue-600">เข้าสู่ระบบที่นี่</Link>
+          </div>
+        )}
       </div>
 
-      {/* บาร์สำหรับค้นหาและคัดกรองตัวกรอง */}
       <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div>
-          <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหาเมนูอาหาร</label>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="🔎 พิมพ์เพื่อค้นหาชื่อเมนู..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium focus:outline-none focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-slate-500 mb-1">คัดกรองสถานที่ซื้อ</label>
-          <select
-            value={placeFilter}
-            onChange={(e) => setPlaceFilter(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-bold focus:outline-none"
-          >
-            <option value="all">🌍 สถานที่ทั้งหมด</option>
-            <option value="7-11">🏪 เซเว่น (7-11)</option>
-            <option value="canteen">🏢 โรงอาหาร</option>
-            <option value="ordered">🍳 อาหารตามสั่ง</option>
-            <option value="cooking">👨‍🍳 ทำเองกินเอง</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-slate-500 mb-1">คัดกรองระดับความอิ่ม</label>
-          <select
-            value={hungerFilter}
-            onChange={(e) => setHungerFilter(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-bold focus:outline-none"
-          >
-            <option value="all">🥣 ความอิ่มทั้งหมด</option>
-            <option value="low">น้อย (กรุบกริบ)</option>
-            <option value="medium">กลาง (กำลังดี)</option>
-            <option value="high">มาก (จุกๆ จัดเต็ม)</option>
-          </select>
-        </div>
+       <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="🔎 ค้นหาเมนูอาหาร..." 
+    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors" />
+  {/* ตัวเลือก: สถานที่ */}
+      <select value={placeFilter} onChange={e => setPlaceFilter(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer">
+    {/* ใส่ text-slate-900 เพื่อให้เวลาเมนูกางออกมาบนจอ คอม/มือถือ ตัวหนังสือจะไม่เป็นสีขาวกลืนกับพื้นหลังของระบบ */}
+    <option value="all" className="bg-white text-slate-900 font-semibold">🌍 ทุกสถานที่</option>
+    <option value="7-11" className="bg-white text-slate-900 font-semibold">🏪 เซเว่น</option>
+    <option value="canteen" className="bg-white text-slate-900 font-semibold">🏢 โรงอาหาร</option>
+    <option value="ordered" className="bg-white text-slate-900 font-semibold">🍳 ตามสั่ง</option>
+    <option value="cooking" className="bg-white text-slate-900 font-semibold">👨‍🍳 ทำเอง</option>
+  </select>
+
+  {/* ตัวเลือก: ระดับความอิ่ม */}
+  <select 
+    value={hungerFilter} 
+    onChange={e => setHungerFilter(e.target.value)} 
+    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+  >
+    <option value="all" className="bg-white text-slate-900 font-semibold">🥣 ทุกระดับความอิ่ม</option>
+    <option value="low" className="bg-white text-slate-900 font-semibold">น้อย</option>
+    <option value="medium" className="bg-white text-slate-900 font-semibold">ปานกลาง</option>
+    <option value="high" className="bg-white text-slate-900 font-semibold">มาก</option>
+  </select>
       </div>
 
-      {/* คลังการ์ดเมนูอาหาร */}
       {filteredMenus.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400">
-          <span className="text-4xl block mb-2">🍽️</span>
-          <p className="font-bold text-slate-500">คลังเมนูว่างเปล่า</p>
-          <p className="text-xs text-slate-400 mt-1">ไม่มีเมนูที่เข้าเงื่อนไขตัวกรอง หรือเมนูทั้งหมดอาจจะถูกซ่อนไว้</p>
-        </div>
+        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400">ไม่พบเมนูอาหาร</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {filteredMenus.map((menu) => (
-            <MenuCard
-              key={menu.id}
-              menu={menu}
-              onEdit={handleEditClick}
-              onDelete={handleDeleteClick}
-            />
+          {filteredMenus.map(m => (
+            <MenuCard key={m.id} menu={m} onEdit={handleEditClick} onDelete={handleDeleteClick} />
           ))}
         </div>
       )}
 
-      {/* กล่อง Modal สำหรับการแก้ไขฟอร์ม */}
-      <EditMenuModal
-        menu={editingMenu}
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingMenu(null);
-        }}
-        onSave={handleSaveMenu}
-      />
+      <EditMenuModal menu={editingMenu} isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingMenu(null); }} onSave={handleSaveMenu} />
     </main>
   );
 }

@@ -5,23 +5,33 @@ import FoodForm from '@/components/FoodForm';
 import ResultCard from '@/components/ResultCard';
 import { MenuItem, FilterCriteria } from '@/types/menu';
 import { getRandomMenu } from '@/utils/randomMenu';
-import { getAllMenus, addHistory } from '@/utils/storage';
+import { getVisibleMenus } from '@/utils/supabaseMenus';
+import { addMealHistory } from '@/utils/supabaseHistory';
+import { addLocalFallbackHistory } from '@/utils/storage';
+import { supabase } from '@/lib/supabase/client';
 
 export default function Home() {
+  const [userId, setUserId] = useState<string | undefined>(undefined);
   const [allMenus, setAllMenus] = useState<MenuItem[]>([]);
   const [currentCriteria, setCurrentCriteria] = useState<FilterCriteria | null>(null);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [noMatch, setNoMatch] = useState<boolean>(false);
   const [rejectedIds, setRejectedIds] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState<string>('');
-
-  // แกนหลักสำคัญ: ดึงฟังก์ชันรวมคลังเมนูทุกเลเยอร์เพื่อสุ่มใช้งานจริง
-  const loadFreshMenus = () => {
-    setAllMenus(getAllMenus());
-  };
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    loadFreshMenus();
+    const syncAuthState = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUid = session?.user?.id;
+      setUserId(currentUid);
+      setAuthChecked(true);
+      
+      const loaded = await getVisibleMenus(currentUid);
+      setAllMenus(loaded);
+    };
+
+    syncAuthState();
   }, []);
 
   const handleRandom = (criteria: FilterCriteria) => {
@@ -51,14 +61,20 @@ export default function Home() {
     }
   };
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
     if (!selectedMenu) return;
-    addHistory({
-      menuId: selectedMenu.id,
-      menuName: selectedMenu.name,
-      price: selectedMenu.price,
-    });
-    setSuccessMessage(`🎉 บันทึกประวัติทานอาหาร "${selectedMenu.name}" เรียบร้อยแล้ว!`);
+    
+    if (userId) {
+      await addMealHistory(userId, selectedMenu);
+      setSuccessMessage(`🚀 บันทึกประวัติกินข้าวคลาวด์ "${selectedMenu.name}" เรียบร้อยแล้ว!`);
+    } else {
+      addLocalFallbackHistory({
+        menuId: selectedMenu.id,
+        menuName: selectedMenu.name,
+        price: selectedMenu.price
+      });
+      setSuccessMessage(`💾 บันทึกลงเครื่องแบบชั่วคราวแล้ว! ล็อกอินเพื่อเก็บบนคลาวด์ถาวรได้นะ`);
+    }
     setSelectedMenu(null);
   };
 
@@ -76,42 +92,31 @@ export default function Home() {
     }
   };
 
+  if (!authChecked) {
+    return <div className="text-center py-20 font-bold text-slate-400">⏳ กำลังจัดเตรียมระบบอาหารอัจฉริยะ...</div>;
+  }
+
   return (
     <main className="max-w-4xl mx-auto px-4 py-6 md:py-10 flex flex-col gap-6">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 text-6xl opacity-10 font-bold select-none">🍱</div>
-        <h1 className="text-2xl md:text-4xl font-black mb-2">มื้อนี้กินอะไรดี? 🤔</h1>
-        <p className="text-blue-100 text-sm md:text-base max-w-md">
-          ใส่พิกัด ป้อนงบประมาณ แล้วปล่อยให้ BetterBlue เลือกอาหารที่ตรงใจ สารอาหารดีต่อใจคุณเอง!
-        </p>
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-6 md:p-8 text-white shadow-xl relative">
+        <h1 className="text-2xl md:text-4xl font-black mb-2">มื้อนี้กินอะไรดี? V1.2 🍱</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        <div className="w-full">
-          <FoodForm onRandom={handleRandom} />
-        </div>
-
-        <div className="w-full flex flex-col gap-4">
+      {/* ปรับเป็น items-stretch เพื่อให้ฝั่งซ้ายและขวาสูงสมมาตรเท่ากันเสมอ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+        <FoodForm onRandom={handleRandom} />
+        
+        {/* ครอบกล่องฝั่งขวาด้วย flex flex-col h-full เพื่อให้ยืดเต็มความสูงของการ์ดฝั่งซ้าย */}
+        <div className="flex flex-col gap-4 h-full">
           {successMessage && (
-            <div className="bg-emerald-50 border border-emerald-400 text-emerald-800 px-4 py-3 rounded-xl font-bold text-center text-sm">
+            <div className="bg-emerald-50 border border-emerald-400 text-emerald-800 px-4 py-3 rounded-xl font-bold text-center text-sm shadow-sm animate-fadeIn">
               {successMessage}
             </div>
           )}
-
-          <ResultCard
-            menu={selectedMenu}
-            noMatch={noMatch}
-            onReroll={handleReroll}
-            onAccept={handleAccept}
-            onReject={handleReject}
-          />
-
-          {!selectedMenu && !noMatch && !successMessage && (
-            <div className="bg-white rounded-2xl p-8 border-2 border-dashed border-slate-200 text-center text-slate-400">
-              <span className="text-4xl block mb-2">🍽️</span>
-              <p className="font-semibold text-slate-500">พร้อมแล้วกดปุ่มสุ่มอาหารได้เลยครับ!</p>
-            </div>
-          )}
+          {/* ห่อหุ้มชั้นในให้ยืดเนื้อที่เต็มความสูงที่เหลืออยู่ */}
+          <div className="flex-1 flex flex-col min-h-[380px] md:min-h-0">
+            <ResultCard menu={selectedMenu} noMatch={noMatch} onReroll={handleReroll} onAccept={handleAccept} onReject={handleReject} />
+          </div>
         </div>
       </div>
     </main>

@@ -17,8 +17,9 @@ export interface MenuItem {
   tags: string[];
   nutrition: Nutrition;
   reason: string;
-  isDefault?: boolean; 
-  isCustom?: boolean;  
+  isDefault?: boolean;
+  isCustom?: boolean;
+  source_menu_id?: string | null; // เพิ่มเก็บความสัมพันธ์ฝั่ง DB
 }
 
 export interface HistoryItem {
@@ -27,6 +28,7 @@ export interface HistoryItem {
   menuName: string;
   price: number;
   dateTime: string;
+  place?: string; // เพิ่มฟิลด์เสริมความต้องการ V1.1
 }
 
 export interface FilterCriteria {

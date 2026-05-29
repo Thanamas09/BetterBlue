@@ -1,11 +1,11 @@
 import { MenuItem, FilterCriteria } from '@/types/menu';
 
 export const getRandomMenu = (
-  allMenus: MenuItem[], // สุ่มโดยตรงจากเมนูชุดผสมล่าสุด
+  visibleMenus: MenuItem[], // เปลี่ยนเป็นดึงจากชุดผสมล่าสุดที่ส่งผ่านมาจากระบบ Page
   criteria: FilterCriteria,
   excludedIds: string[] = []
 ): MenuItem | null => {
-  let filtered = allMenus.filter((menu) => !excludedIds.includes(menu.id));
+  let filtered = visibleMenus.filter((menu) => !excludedIds.includes(menu.id));
 
   filtered = filtered.filter((menu) => menu.price <= criteria.budget);
   filtered = filtered.filter((menu) => menu.place === criteria.place);
