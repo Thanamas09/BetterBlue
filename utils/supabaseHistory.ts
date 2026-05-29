@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase/client';
-import { MenuItem, HistoryItem } from '@/types/menu';
+import { MenuItem, HistoryItem, MealType, HungerLevelType } from '@/types/menu';
 
-// 1. ดึงข้อมูลประวัติการกิน (พร้อมระบบความปลอดภัยดักล่ม)
+// 1. ดึงประวัติการกิน
 export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => {
   try {
     const { data, error } = await supabase
@@ -16,14 +16,13 @@ export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => 
     }
 
     return (data || []).map((h) => {
-      // ป้องกันอาการวันที่ Parse ไม่ผ่านจนระบบค้าง
-      let formattedDate = 'ไม่ระบุวันเวลา';
+      let dateTime = new Date().toISOString();
       try {
         if (h.eaten_at) {
-          formattedDate = new Date(h.eaten_at).toLocaleString('th-TH');
+          dateTime = new Date(h.eaten_at).toISOString();
         }
-      } catch (dateErr) {
-        console.error('Error parsing date:', dateErr);
+      } catch {
+        // keep default
       }
 
       return {
@@ -32,7 +31,11 @@ export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => 
         menuName: h.menu_name || 'เมนูไม่ระบุชื่อ',
         price: Number(h.price) || 0,
         place: h.place || '',
-        dateTime: formattedDate
+        budget: h.budget ? Number(h.budget) : undefined,
+        hungerLevel: h.hunger_level as HungerLevelType | undefined,
+        mealType: (h.meal_type as MealType) || 'other',
+        dateTime,
+        storageMode: 'cloud' as const,
       };
     });
   } catch (err) {
@@ -41,19 +44,25 @@ export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => 
   }
 };
 
-// 2. บันทึกประวัติการกินลง Cloud (ดักเช็คค่า UUID อย่างปลอดภัย)
-export const addMealHistory = async (userId: string, menu: MenuItem) => {
-  // ตรวจสอบโครงสร้างว่า menu.id เป็นรูปแบบ UUID หรือไม่ 
-  // (ป้องกันปัญหาระบบสุ่มดึงเมนูดั้งเดิมเช่น 'm1', 'm2' ไปยัดใส่ช่อง UUID ในฐานข้อมูลไม่ได้)
+// 2. บันทึกประวัติการกินลง Cloud
+export const addMealHistory = async (
+  userId: string,
+  menu: MenuItem,
+  extra?: { budget?: number; mealType?: MealType }
+) => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const isValidUUID = uuidRegex.test(menu.id);
 
   const { error } = await supabase.from('meal_history').insert({
     user_id: userId,
-    menu_id: isValidUUID ? menu.id : null, // ถ้าไม่ใช่ UUID จริง ให้ส่งเป็น null เพื่อไม่ให้หลังบ้านบล็อก
+    menu_id: isValidUUID ? menu.id : null,
     menu_name: menu.name,
     price: menu.price,
-    place: menu.place || 'ordered'
+    place: menu.place || 'ordered',
+    budget: extra?.budget ?? null,
+    hunger_level: menu.hungerLevel ?? null,
+    meal_type: extra?.mealType ?? 'other',
+    eaten_at: new Date().toISOString(),
   });
 
   if (error) {
@@ -71,6 +80,20 @@ export const clearMealHistory = async (userId: string) => {
 
   if (error) {
     console.error('Error clearing history from Supabase:', error.message);
+    throw error;
+  }
+};
+
+// 4. ลบรายการเดียว
+export const deleteSingleMealHistory = async (userId: string, id: string) => {
+  const { error } = await supabase
+    .from('meal_history')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error deleting single history item:', error.message);
     throw error;
   }
 };

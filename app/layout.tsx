@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "BetterBlue | FoodBudget",
-  description: "โปรเจกต์สุ่มเมนูอาหารตามงบ สไตล์เด็กรุ่นใหม่",
+  title: "BetterBlue | Personal Meal Randomizer",
+  description: "BetterBlue ช่วยคุณตัดสินใจว่ามื้อนี้กินอะไร และติดตามค่าใช้จ่ายอาหารประจำวัน",
 };
 
 export default function RootLayout({
@@ -17,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th">
-      <body className={`${inter.className} bg-slate-50 text-slate-900 min-h-screen antialiased`}>
+      <body
+        className="bg-slate-50 text-slate-900 min-h-screen antialiased"
+        style={{ fontFamily: "'Segoe UI', 'Noto Sans Thai', sans-serif" }}
+      >
         <Navbar />
         {children}
       </body>
