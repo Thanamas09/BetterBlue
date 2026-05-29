@@ -94,8 +94,8 @@ export default function MenusPage() {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          {/* ปรับสีเป็น text-white และคำอธิบายเป็น text-slate-300 ให้ตัดกับธีมหลังสว่างคมชัดชัดเจน */}
-          <h1 className="text-2xl font-black text-white">📚 คลังเมนูอาหารทั้งหมด</h1>
+          {/* Fixed: was text-white on slate-50 background — now text-slate-800 */}
+          <h1 className="text-2xl font-black text-slate-800">📚 คลังเมนูอาหารทั้งหมด</h1>
         </div>
         {!userId && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-800 font-medium">
@@ -105,33 +105,38 @@ export default function MenusPage() {
       </div>
 
       <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
-       <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="🔎 ค้นหาเมนูอาหาร..." 
-    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors" />
-  {/* ตัวเลือก: สถานที่ */}
-      <select value={placeFilter} onChange={e => setPlaceFilter(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer">
-    {/* ใส่ text-slate-900 เพื่อให้เวลาเมนูกางออกมาบนจอ คอม/มือถือ ตัวหนังสือจะไม่เป็นสีขาวกลืนกับพื้นหลังของระบบ */}
-    <option value="all" className="bg-white text-slate-900 font-semibold">🌍 ทุกสถานที่</option>
-    <option value="7-11" className="bg-white text-slate-900 font-semibold">🏪 เซเว่น</option>
-    <option value="canteen" className="bg-white text-slate-900 font-semibold">🏢 โรงอาหาร</option>
-    <option value="ordered" className="bg-white text-slate-900 font-semibold">🍳 ตามสั่ง</option>
-    <option value="cooking" className="bg-white text-slate-900 font-semibold">👨‍🍳 ทำเอง</option>
-  </select>
-
-  {/* ตัวเลือก: ระดับความอิ่ม */}
-  <select 
-    value={hungerFilter} 
-    onChange={e => setHungerFilter(e.target.value)} 
-    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
-  >
-    <option value="all" className="bg-white text-slate-900 font-semibold">🥣 ทุกระดับความอิ่ม</option>
-    <option value="low" className="bg-white text-slate-900 font-semibold">น้อย</option>
-    <option value="medium" className="bg-white text-slate-900 font-semibold">ปานกลาง</option>
-    <option value="high" className="bg-white text-slate-900 font-semibold">มาก</option>
-  </select>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          placeholder="🔎 ค้นหาเมนูอาหาร..."
+          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+        />
+        <select
+          value={placeFilter}
+          onChange={e => setPlaceFilter(e.target.value)}
+          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+        >
+          <option value="all" className="bg-white text-slate-900 font-semibold">🌍 ทุกสถานที่</option>
+          <option value="7-11" className="bg-white text-slate-900 font-semibold">🏪 เซเว่น</option>
+          <option value="canteen" className="bg-white text-slate-900 font-semibold">🏢 โรงอาหาร</option>
+          <option value="ordered" className="bg-white text-slate-900 font-semibold">🍳 ตามสั่ง</option>
+          <option value="cooking" className="bg-white text-slate-900 font-semibold">👨‍🍳 ทำเอง</option>
+        </select>
+        <select
+          value={hungerFilter}
+          onChange={e => setHungerFilter(e.target.value)}
+          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+        >
+          <option value="all" className="bg-white text-slate-900 font-semibold">🥣 ทุกระดับความอิ่ม</option>
+          <option value="low" className="bg-white text-slate-900 font-semibold">น้อย</option>
+          <option value="medium" className="bg-white text-slate-900 font-semibold">ปานกลาง</option>
+          <option value="high" className="bg-white text-slate-900 font-semibold">มาก</option>
+        </select>
       </div>
 
       {filteredMenus.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400">ไม่พบเมนูอาหาร</div>
+        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500 font-medium">ไม่พบเมนูอาหาร</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredMenus.map(m => (

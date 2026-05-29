@@ -44,19 +44,21 @@ export default function AuthForm({ type }: AuthFormProps) {
       <h2 className="text-2xl font-black text-slate-800 mb-2 text-center">
         {type === 'login' ? '🔐 เข้าสู่ระบบ BetterBlue' : '🚀 สมัครสมาชิกพอร์ตประหยัด'}
       </h2>
-      <p className="text-xs text-slate-400 text-center mb-6">
+      {/* Fixed: was text-slate-400 (too light on white) — now text-slate-500 */}
+      <p className="text-xs text-slate-500 text-center mb-6">
         {type === 'login' ? 'เปิดคลาวด์ล็อกประวัติและคลังข้อมูลอาหารของคุณ' : 'ซิงค์ระบบสุ่มอัจฉริยะไว้ใช้งานได้จากทุกๆ ที่'}
       </p>
 
       {errorMsg && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-600 rounded-xl p-3 text-xs font-bold mb-4">
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-3 text-xs font-bold mb-4">
           ⚠️ {errorMsg}
         </div>
       )}
 
       <form onSubmit={handleAuth} className="flex flex-col gap-4">
         <div>
-          <label className="block text-xs font-bold text-slate-500 mb-1">อีเมลผู้ใช้งาน (Email)</label>
+          {/* Fixed: was text-slate-500 (light on white label) — now text-slate-600 */}
+          <label className="block text-xs font-bold text-slate-600 mb-1">อีเมลผู้ใช้งาน (Email)</label>
           <input
             type="email"
             value={email}
@@ -68,7 +70,7 @@ export default function AuthForm({ type }: AuthFormProps) {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-500 mb-1">รหัสผ่าน (Password)</label>
+          <label className="block text-xs font-bold text-slate-600 mb-1">รหัสผ่าน (Password)</label>
           <input
             type="password"
             value={password}
@@ -90,12 +92,12 @@ export default function AuthForm({ type }: AuthFormProps) {
 
       <div className="border-t border-slate-100 pt-4 mt-6 text-center text-xs">
         {type === 'login' ? (
-          <p className="text-slate-500">
+          <p className="text-slate-600">
             ยังไม่มีบัญชีกับเราใช่ไหม?{' '}
             <Link href="/register" className="text-blue-600 font-bold hover:underline">สร้างบัญชีใหม่ที่นี่</Link>
           </p>
         ) : (
-          <p className="text-slate-500">
+          <p className="text-slate-600">
             มีบัญชีผู้ใช้อยู่แล้วใช่ไหม?{' '}
             <Link href="/login" className="text-blue-600 font-bold hover:underline">ย้อนกลับไปหน้าล็อกอิน</Link>
           </p>

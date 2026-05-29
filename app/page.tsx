@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import FoodForm from '@/components/FoodForm';
 import ResultCard from '@/components/ResultCard';
+import ConfirmationCard from '@/components/ConfirmationCard';
 import { MenuItem, FilterCriteria } from '@/types/menu';
 import { getRandomMenu } from '@/utils/randomMenu';
 import { getVisibleMenus } from '@/utils/supabaseMenus';
@@ -15,9 +16,9 @@ export default function Home() {
   const [allMenus, setAllMenus] = useState<MenuItem[]>([]);
   const [currentCriteria, setCurrentCriteria] = useState<FilterCriteria | null>(null);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
+  const [confirmedMenu, setConfirmedMenu] = useState<MenuItem | null>(null);
   const [noMatch, setNoMatch] = useState<boolean>(false);
   const [rejectedIds, setRejectedIds] = useState<string[]>([]);
-  const [successMessage, setSuccessMessage] = useState<string>('');
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export default function Home() {
   const handleRandom = (criteria: FilterCriteria) => {
     setCurrentCriteria(criteria);
     setRejectedIds([]);
-    setSuccessMessage('');
+    setConfirmedMenu(null);
 
     const match = getRandomMenu([...allMenus], criteria, []);
     if (match) {
@@ -64,18 +65,20 @@ export default function Home() {
   const handleAccept = async () => {
     if (!selectedMenu) return;
     
+    const accepted = selectedMenu;
+
     if (userId) {
       await addMealHistory(userId, selectedMenu);
-      setSuccessMessage(`🚀 บันทึกประวัติกินข้าวคลาวด์ "${selectedMenu.name}" เรียบร้อยแล้ว!`);
     } else {
       addLocalFallbackHistory({
         menuId: selectedMenu.id,
         menuName: selectedMenu.name,
         price: selectedMenu.price
       });
-      setSuccessMessage(`💾 บันทึกลงเครื่องแบบชั่วคราวแล้ว! ล็อกอินเพื่อเก็บบนคลาวด์ถาวรได้นะ`);
     }
+
     setSelectedMenu(null);
+    setConfirmedMenu(accepted);
   };
 
   const handleReject = () => {
@@ -92,6 +95,12 @@ export default function Home() {
     }
   };
 
+  const handleAddMore = () => {
+    setConfirmedMenu(null);
+    setSelectedMenu(null);
+    setNoMatch(false);
+  };
+
   if (!authChecked) {
     return <div className="text-center py-20 font-bold text-slate-400">⏳ กำลังจัดเตรียมระบบอาหารอัจฉริยะ...</div>;
   }
@@ -102,21 +111,27 @@ export default function Home() {
         <h1 className="text-2xl md:text-4xl font-black mb-2">มื้อนี้กินอะไรดี? V1.2 🍱</h1>
       </div>
 
-      {/* ปรับเป็น items-stretch เพื่อให้ฝั่งซ้ายและขวาสูงสมมาตรเท่ากันเสมอ */}
+      {/* Two-column layout — items-stretch ensures both columns share the same height */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
         <FoodForm onRandom={handleRandom} />
-        
-        {/* ครอบกล่องฝั่งขวาด้วย flex flex-col h-full เพื่อให้ยืดเต็มความสูงของการ์ดฝั่งซ้าย */}
-        <div className="flex flex-col gap-4 h-full">
-          {successMessage && (
-            <div className="bg-emerald-50 border border-emerald-400 text-emerald-800 px-4 py-3 rounded-xl font-bold text-center text-sm shadow-sm animate-fadeIn">
-              {successMessage}
-            </div>
+
+        {/* Right column stretches to match left column height */}
+        <div className="flex flex-col min-h-[420px] md:min-h-0">
+          {confirmedMenu ? (
+            <ConfirmationCard
+              menu={confirmedMenu}
+              isLoggedIn={!!userId}
+              onAddMore={handleAddMore}
+            />
+          ) : (
+            <ResultCard
+              menu={selectedMenu}
+              noMatch={noMatch}
+              onReroll={handleReroll}
+              onAccept={handleAccept}
+              onReject={handleReject}
+            />
           )}
-          {/* ห่อหุ้มชั้นในให้ยืดเนื้อที่เต็มความสูงที่เหลืออยู่ */}
-          <div className="flex-1 flex flex-col min-h-[380px] md:min-h-0">
-            <ResultCard menu={selectedMenu} noMatch={noMatch} onReroll={handleReroll} onAccept={handleAccept} onReject={handleReject} />
-          </div>
         </div>
       </div>
     </main>

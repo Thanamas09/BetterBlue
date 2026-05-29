@@ -13,17 +13,25 @@ interface ResultCardProps {
 export default function ResultCard({ menu, noMatch, onReroll, onAccept, onReject }: ResultCardProps) {
   if (noMatch) {
     return (
-      <div className="bg-yellow-50 border-2 border-dashed border-yellow-400 rounded-2xl p-6 text-center shadow-md animate-fade-in">
+      <div className="bg-yellow-50 border-2 border-dashed border-yellow-400 rounded-2xl p-6 text-center shadow-md animate-fade-in h-full flex flex-col justify-center items-center">
         <span className="text-4xl">😵</span>
         <h3 className="text-xl font-black text-slate-800 mt-3 mb-2">ไม่พบเมนูอาหารที่ตรงเงื่อนไข</h3>
-        <p className="text-slate-600 text-sm">
+        <p className="text-slate-700 text-sm">
           ลองเพิ่มงบประมาณ ขยายสถานที่ หรือลบเมนูที่ไม่อยากกินออกดูนะเพื่อน!
         </p>
       </div>
     );
   }
 
-  if (!menu) return null;
+  if (!menu) {
+    return (
+      <div className="bg-slate-100 border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center h-full flex flex-col justify-center items-center gap-3">
+        <span className="text-5xl">🍽️</span>
+        <p className="text-slate-600 font-bold text-base">ตั้งค่าความหิวและงบประมาณ</p>
+        <p className="text-slate-500 text-sm">แล้วกดปุ่ม <span className="font-black text-blue-600">สุ่มเมนูอาหาร</span> เพื่อรับคำแนะนำ</p>
+      </div>
+    );
+  }
 
   const translatePlace = (p: string) => {
     if (p === '7-11') return '🏪 เซเว่น';
@@ -39,7 +47,7 @@ export default function ResultCard({ menu, noMatch, onReroll, onAccept, onReject
   };
 
   return (
-    <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-2xl border-2 border-blue-500 relative overflow-hidden animate-fade-in">
+    <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-2xl border-2 border-blue-500 relative overflow-hidden animate-fade-in h-full flex flex-col">
       {/* Decorative Badge */}
       <div className="absolute top-0 right-0 bg-yellow-400 text-slate-950 font-black text-xs px-4 py-1.5 rounded-bl-xl shadow">
         RECOMMENDED MATCH
@@ -61,7 +69,7 @@ export default function ResultCard({ menu, noMatch, onReroll, onAccept, onReject
       </blockquote>
 
       {/* Nutrition Grid */}
-      <div className="bg-slate-800/40 rounded-xl p-4 mb-6 border border-slate-800">
+      <div className="bg-slate-800/40 rounded-xl p-4 mb-4 border border-slate-800">
         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
           📊 ข้อมูลสารอาหารโดยประมาณ
         </h4>
@@ -84,6 +92,9 @@ export default function ResultCard({ menu, noMatch, onReroll, onAccept, onReject
           </div>
         </div>
       </div>
+
+      {/* Spacer to push buttons to bottom */}
+      <div className="flex-1" />
 
       {/* Action CTA Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">

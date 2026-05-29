@@ -56,7 +56,7 @@ export default function HistoryPage() {
     return (
       <div className="min-h-[60vh] flex flex-col justify-center items-center gap-2">
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm font-bold text-slate-400 mt-2">⏳ กำลังโหลดบันทึกประวัติมื้ออาหารจากคลาวด์...</p>
+        <p className="text-sm font-bold text-slate-500 mt-2">⏳ กำลังโหลดบันทึกประวัติมื้ออาหารจากคลาวด์...</p>
       </div>
     );
   }
@@ -65,13 +65,13 @@ export default function HistoryPage() {
     <main className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <div>
-          {/* ปรับสีเป็น text-white และคำอธิบายเป็น text-slate-300 เพื่อความชัดเจนบน Dark Theme */}
-          <h1 className="text-2xl font-black text-white">📜 ประวัติการกินอาหาร</h1>
+          {/* Fixed: was text-white on slate-50 body background — now text-slate-800 */}
+          <h1 className="text-2xl font-black text-slate-800">📜 ประวัติการกินอาหาร</h1>
         </div>
         {history.length > 0 && (
           <button 
             onClick={handleClear} 
-            className="text-xs font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl transition-colors"
+            className="text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl transition-colors border border-rose-200"
           >
             💥 ล้างประวัติทั้งหมด
           </button>
@@ -79,10 +79,10 @@ export default function HistoryPage() {
       </div>
 
       {history.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400">
+        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-500">
           <span className="text-4xl block mb-2">🍃</span>
-          <p className="font-bold text-slate-500">ยังไม่มีบันทึกประวัติการกิน</p>
-          <p className="text-xs text-slate-400 mt-1">มื้อถัดไปหลังกดสุ่มแล้ว อย่าลืมกดปุ่มบันทึกเพื่อสะสมสถิตินะครับ</p>
+          <p className="font-bold text-slate-600">ยังไม่มีบันทึกประวัติการกิน</p>
+          <p className="text-xs text-slate-500 mt-1">มื้อถัดไปหลังกดสุ่มแล้ว อย่าลืมกดปุ่มบันทึกเพื่อสะสมสถิตินะครับ</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -93,12 +93,12 @@ export default function HistoryPage() {
             >
               <div>
                 <h3 className="font-black text-slate-800 text-sm">{item.menuName}</h3>
-                <span className="text-[11px] text-slate-400 font-semibold">{item.dateTime}</span>
+                <span className="text-[11px] text-slate-500 font-semibold">{item.dateTime}</span>
               </div>
               <div className="text-right">
                 <span className="text-sm font-black text-blue-600 block">฿{item.price}</span>
                 {item.place && (
-                  <span className="text-[10px] text-slate-400 font-bold bg-slate-100 px-1.5 py-0.5 rounded-md mt-0.5 inline-block">
+                  <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded-md mt-0.5 inline-block">
                     {item.place === 'ordered' ? '🍳 ตามสั่ง' : item.place === 'canteen' ? '🏢 โรงอาหาร' : item.place === '7-11' ? '🏪 เซเว่น' : '👨‍🍳 ทำเอง'}
                   </span>
                 )}
