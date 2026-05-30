@@ -39,8 +39,8 @@ export default function AddMenuPage() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex justify-center items-center">
-        <div className="text-center font-bold text-slate-400 animate-pulse">
-          ⏳ ตรวจสอบสถานะและระดับสิทธิ์ผู้ใช้งาน...
+        <div className="text-center font-bold text-slate-500 animate-pulse">
+          ⏳ ตรวจสอบสถานะบัญชี...
         </div>
       </div>
     );
@@ -71,7 +71,6 @@ export default function AddMenuPage() {
         <h1 className="text-2xl font-black text-slate-800">➕ เพิ่มเมนูอาหารโปรด</h1>
       </div>
 
-      {/* เรียกใช้งาน Form Component พร้อมส่งฟังก์ชัน Handle ที่แปลง Type เรียบร้อย */}
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
         <AddMenuForm onAddMenu={handleAddMenu} />
       </div>

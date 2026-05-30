@@ -28,7 +28,7 @@ export default function AuthForm({ type }: AuthFormProps) {
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('🎯 สมัครสมาชิกเสร็จเรียบร้อย! สามารถกดยืนยันหรือล็อกอินเข้าระบบต่อได้ทันที');
+        alert('🎯 สมัครสมาชิกเรียบร้อย! ตรวจอีเมลยืนยันบัญชีถ้า Supabase เปิด Email Confirmation ไว้');
       }
       router.push('/');
       router.refresh();
@@ -43,11 +43,11 @@ export default function AuthForm({ type }: AuthFormProps) {
   return (
     <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md w-full">
       <h2 className="text-2xl font-black text-slate-800 mb-2 text-center">
-        {type === 'login' ? '🔐 เข้าสู่ระบบ BetterBlue' : '🚀 สมัครสมาชิกพอร์ตประหยัด'}
+        {type === 'login' ? '🔐 เข้าสู่ระบบ BetterBlue' : '🚀 สมัครสมาชิก BetterBlue'}
       </h2>
       {/* Fixed: was text-slate-400 (too light on white) — now text-slate-500 */}
       <p className="text-xs text-slate-500 text-center mb-6">
-        {type === 'login' ? 'เปิดคลาวด์ล็อกประวัติและคลังข้อมูลอาหารของคุณ' : 'ซิงค์ระบบสุ่มอัจฉริยะไว้ใช้งานได้จากทุกๆ ที่'}
+        {type === 'login' ? 'ล็อกอินเพื่อซิงค์ประวัติอาหารและคลังเมนูของคุณ' : 'สร้างบัญชีเพื่อเก็บประวัติอาหารและเมนูส่วนตัวไว้บน Cloud'}
       </p>
 
       {errorMsg && (
@@ -87,7 +87,7 @@ export default function AuthForm({ type }: AuthFormProps) {
           disabled={loading}
           className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-3 rounded-xl transition-all shadow-md shadow-blue-500/10 text-sm mt-2 disabled:opacity-50"
         >
-          {loading ? '⏳ กำลังประมวลผลข้อมูล...' : type === 'login' ? 'ลงชื่อเข้าใช้งาน' : 'ลงทะเบียนเปิดบัญชี'}
+          {loading ? '⏳ กำลังประมวลผลข้อมูล...' : type === 'login' ? 'ลงชื่อเข้าใช้งาน' : 'สมัครสมาชิก'}
         </button>
       </form>
 

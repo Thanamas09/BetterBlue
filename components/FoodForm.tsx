@@ -1,23 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FilterCriteria, PlaceFilterType, HungerLevelType } from '@/types/menu';
 
 interface FoodFormProps {
   onRandom: (criteria: FilterCriteria) => void;
+  onClear?: () => void;
+  isRandomized?: boolean; // 🎯 รับสถานะเช็คว่าฝั่งขวาได้สุ่มขึ้นมาแล้วหรือยัง
 }
 
-export default function FoodForm({ onRandom }: FoodFormProps) {
+export default function FoodForm({ onRandom, onClear, isRandomized = false }: FoodFormProps) {
   const [budget, setBudget] = useState<number>(80);
   const [place, setPlace] = useState<PlaceFilterType>('all');
   const [hungerLevel, setHungerLevel] = useState<HungerLevelType>('medium');
   const [excludeInput, setExcludeInput] = useState<string>('');
+  
+  // 🎯 State คุมการล็อกของปุ่มเริ่มสุ่มเมนูโดยเฉพาะ
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+
+  // 🎯 กลไกเมื่อหน้าหลักสุ่มเมนูขึ้นมาแล้ว ให้ปุ่มเซ็ตล็อกตัวเอง
+  useEffect(() => {
+    if (isRandomized) {
+      setIsButtonDisabled(true);
+    } else {
+      setIsButtonDisabled(false);
+    }
+  }, [isRandomized]);
+
+  // 🎯 [ฟังก์ชันเด็ด] เมื่อผู้ใช้อัปเดตข้อมูลหรือเปลี่ยนค่าปุ่มใดๆ ในแถบซ้าย ให้ทำการปลดล็อกปุ่มเริ่มสุ่มทันที
+  const handleInputChange = (updateAction: () => void) => {
+    updateAction(); // เปลี่ยนค่าฟิลด์นั้นๆ
+    setIsButtonDisabled(false); // ปลดล็อกปุ่มเริ่มสุ่มอาหาร
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isButtonDisabled) return; // ดักทางพฤติกรรมกดเบิ้ล
+
     const excludeTags = excludeInput
       ? excludeInput.split(',').map((tag) => tag.trim()).filter(Boolean)
       : [];
+    
+    setIsButtonDisabled(true); // ล็อกปุ่มทันทีที่เริ่มสุ่ม
     onRandom({ budget: Number(budget) || 0, place, hungerLevel, excludeTags });
   };
 
@@ -26,6 +50,8 @@ export default function FoodForm({ onRandom }: FoodFormProps) {
     setPlace('all');
     setHungerLevel('medium');
     setExcludeInput('');
+    setIsButtonDisabled(false);
+    onClear?.();
   };
 
   const places = [
@@ -45,24 +71,26 @@ export default function FoodForm({ onRandom }: FoodFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100 flex flex-col gap-5"
+      className="bg-white rounded-3xl p-6 flex flex-col gap-6"
     >
-      <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-        <span>🎯</span> ตั้งค่ามื้ออาหาร
-      </h2>
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h2 className="text-base font-serif font-semibold text-slate-900 flex items-center gap-2">
+          <span className="text-sm bg-slate-100 p-1.5 rounded-lg">🎯</span> ตั้งค่าเกณฑ์มื้ออาหาร
+        </h2>
+      </div>
 
-      {/* Budget */}
+      {/* บล็อกอินพุตงบประมาณต่อมื้อ */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
           งบประมาณต่อมื้อ (บาท)
         </label>
         <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">฿</span>
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm">฿</span>
           <input
             type="number"
             value={budget}
-            onChange={(e) => setBudget(Math.max(0, parseInt(e.target.value) || 0))}
-            className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-3 pl-9 pr-4 text-lg font-bold text-blue-600 focus:outline-none focus:border-blue-500 transition-colors"
+            onChange={(e) => handleInputChange(() => setBudget(Math.max(0, parseInt(e.target.value) || 0)))}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 py-3 pl-9 pr-4 text-base font-bold text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-all"
             placeholder="เช่น 80"
             required
             min={1}
@@ -71,34 +99,20 @@ export default function FoodForm({ onRandom }: FoodFormProps) {
         </div>
       </div>
 
-      {/* Place */}
+      {/* บล็อกปุ่มเลือกแหล่งอาหาร */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
-          แหล่งอาหาร
+        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+          แหล่งอาหารที่ต้องการ
         </label>
-        <div className="grid grid-cols-3 gap-2">
-          {places.slice(0, 3).map((item) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {places.map((item) => (
             <button
               key={item.key}
               type="button"
-              onClick={() => setPlace(item.key)}
-              className={`py-2.5 px-2 text-xs font-bold rounded-xl border-2 transition-all ${
+              onClick={() => handleInputChange(() => setPlace(item.key))}
+              className={`py-2.5 px-2 text-xs font-medium rounded-xl border transition-all active:scale-95 ${
                 place === item.key
-                  ? 'bg-blue-50 border-blue-600 text-blue-600 shadow-sm'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-          {places.slice(3).map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setPlace(item.key)}
-              className={`py-2.5 px-2 text-xs font-bold rounded-xl border-2 transition-all ${
-                place === item.key
-                  ? 'bg-blue-50 border-blue-600 text-blue-600 shadow-sm'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
                   : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
               }`}
             >
@@ -108,18 +122,18 @@ export default function FoodForm({ onRandom }: FoodFormProps) {
         </div>
       </div>
 
-      {/* Hunger Level */}
+      {/* บล็อกปุ่มเลือกระดับความหิว */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">ระดับความหิว</label>
+        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">ระดับความต้องการพลังงาน</label>
         <div className="grid grid-cols-3 gap-2">
           {hungerLevels.map((item) => (
             <button
               key={item.key}
               type="button"
-              onClick={() => setHungerLevel(item.key)}
-              className={`py-2.5 px-2 text-xs font-bold rounded-xl border-2 transition-all ${
+              onClick={() => handleInputChange(() => setHungerLevel(item.key))}
+              className={`py-2.5 px-2 text-xs font-medium rounded-xl border transition-all active:scale-95 ${
                 hungerLevel === item.key
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/20'
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
                   : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
               }`}
             >
@@ -129,34 +143,39 @@ export default function FoodForm({ onRandom }: FoodFormProps) {
         </div>
       </div>
 
-      {/* Exclude Tags */}
+      {/* บล็อกข้อความระบุวัตถุดิบต้องห้าม */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-1">ไม่อยากกินอะไร?</label>
-        <p className="text-xs text-slate-400 mb-2">คั่นด้วยเครื่องหมายจุลภาค (,) เช่น ไก่, เผ็ด</p>
+        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">สิ่งที่ไม่ต้องการรับประทาน</label>
+        <p className="text-[10px] text-slate-400 mb-2">แยกคำค้นหาแต่ละชนิดด้วยเครื่องหมายจุลภาค เช่น ไก่, เผ็ด</p>
         <input
           type="text"
           value={excludeInput}
-          onChange={(e) => setExcludeInput(e.target.value)}
-          className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-3 px-4 text-slate-700 focus:outline-none focus:border-blue-500 transition-colors text-sm"
-          placeholder="เมนูหรือวัตถุดิบที่ไม่ต้องการ..."
+          onChange={(e) => handleInputChange(() => setExcludeInput(e.target.value))}
+          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 text-xs focus:outline-none focus:border-slate-900 focus:bg-white transition-all"
+          placeholder="ระบุวัตถุดิบหรือเมนูคัดออก..."
         />
       </div>
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-3 gap-3 pt-1">
+      {/* ปุ่มสั่งการฟอร์มหลัก */}
+      <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-100">
         <button
           type="button"
           onClick={handleClear}
-          className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-4 rounded-xl transition-colors text-sm"
+          className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-3 px-4 rounded-xl transition-colors text-xs active:scale-95"
           suppressHydrationWarning
         >
-          ล้างค่า
+          ล้างค่าใหม่
         </button>
         <button
           type="submit"
-          className="col-span-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all flex justify-center items-center gap-2"
+          disabled={isButtonDisabled}
+          className={`col-span-2 font-bold py-3 px-4 rounded-xl shadow-md transition-all flex justify-center items-center gap-2 active:scale-95 ${
+            isButtonDisabled
+              ? 'bg-slate-200 text-slate-400 cursor-not-allowed transform-none active:scale-100'
+              : 'bg-slate-900 hover:bg-slate-800 text-white'
+          }`}
         >
-          <span>🎲</span> สุ่มเมนูอาหาร
+          <span>🎲</span> เริ่มสุ่มเมนูอาหาร
         </button>
       </div>
     </form>

@@ -3,20 +3,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { HistoryItem } from '@/types/menu';
 import { getMealHistory, clearMealHistory, deleteSingleMealHistory } from '@/utils/supabaseHistory';
-import { getLocalFallbackHistory } from '@/utils/storage';
+import {
+  clearLocalFallbackHistory,
+  deleteLocalFallbackHistoryItem,
+  getLocalFallbackHistory,
+} from '@/utils/storage';
 import { supabase } from '@/lib/supabase/client';
 import { Toast, useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import Link from 'next/link';
 
-// Helper: group history items by date
 function groupByDate(items: HistoryItem[]): { dateLabel: string; items: HistoryItem[]; total: number }[] {
   const map = new Map<string, HistoryItem[]>();
   for (const item of items) {
     let dateKey: string;
     try {
       const d = new Date(item.dateTime);
-      dateKey = d.toDateString();
+      dateKey = Number.isNaN(d.getTime()) ? 'ไม่ระบุวันที่' : d.toDateString();
     } catch {
       dateKey = 'ไม่ระบุวันที่';
     }
@@ -112,7 +115,7 @@ export default function HistoryPage() {
         await clearMealHistory(userId);
         await loadHistory(userId);
       } else {
-        localStorage.removeItem('betterblue_local_fallback_history');
+        clearLocalFallbackHistory();
         setHistory([]);
       }
       addToast('ล้างประวัติทั้งหมดสำเร็จ', 'success');
@@ -128,9 +131,7 @@ export default function HistoryPage() {
         await deleteSingleMealHistory(userId, id);
         await loadHistory(userId);
       } else {
-        const updated = getLocalFallbackHistory().filter((h) => h.id !== id);
-        localStorage.setItem('betterblue_local_fallback_history', JSON.stringify(updated));
-        setHistory(updated);
+        setHistory(deleteLocalFallbackHistoryItem(id));
       }
       addToast('ลบรายการสำเร็จ', 'success');
     } catch {
