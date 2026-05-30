@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FilterCriteria, PlaceType, HungerLevelType } from '@/types/menu';
+import { FilterCriteria, PlaceFilterType, HungerLevelType } from '@/types/menu';
 
 interface FoodFormProps {
   onRandom: (criteria: FilterCriteria) => void;
@@ -9,7 +9,7 @@ interface FoodFormProps {
 
 export default function FoodForm({ onRandom }: FoodFormProps) {
   const [budget, setBudget] = useState<number>(80);
-  const [place, setPlace] = useState<PlaceType>('all');
+  const [place, setPlace] = useState<PlaceFilterType>('all');
   const [hungerLevel, setHungerLevel] = useState<HungerLevelType>('medium');
   const [excludeInput, setExcludeInput] = useState<string>('');
 
@@ -81,7 +81,7 @@ export default function FoodForm({ onRandom }: FoodFormProps) {
             <button
               key={item.key}
               type="button"
-              onClick={() => setPlace(item.key as PlaceType)}
+              onClick={() => setPlace(item.key)}
               className={`py-2.5 px-2 text-xs font-bold rounded-xl border-2 transition-all ${
                 place === item.key
                   ? 'bg-blue-50 border-blue-600 text-blue-600 shadow-sm'
@@ -95,7 +95,7 @@ export default function FoodForm({ onRandom }: FoodFormProps) {
             <button
               key={item.key}
               type="button"
-              onClick={() => setPlace(item.key as PlaceType)}
+              onClick={() => setPlace(item.key)}
               className={`py-2.5 px-2 text-xs font-bold rounded-xl border-2 transition-all ${
                 place === item.key
                   ? 'bg-blue-50 border-blue-600 text-blue-600 shadow-sm'

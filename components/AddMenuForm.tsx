@@ -1,11 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { MenuItem, PlaceType, HungerLevelType } from '@/types/menu';
+import { MenuDraft, PlaceType, HungerLevelType } from '@/types/menu';
 
-// เปลี่ยนให้รับค่าฟังก์ชันที่มีโครงสร้างยืดหยุ่น หายแดงแน่นอน
 interface AddMenuFormProps {
-  onAddMenu: (data: Omit<MenuItem, 'id'>) => void;
+  onAddMenu: (data: MenuDraft) => void;
 }
 
 export default function AddMenuForm({ onAddMenu }: AddMenuFormProps) {
@@ -33,7 +32,6 @@ export default function AddMenuForm({ onAddMenu }: AddMenuFormProps) {
       .map((t) => t.trim())
       .filter((t) => t !== '');
 
-    // ส่งโครงสร้างข้อมูลออกไปให้ครบถ้วนตามที่ Omit<MenuItem, 'id'> ต้องการ
     onAddMenu({
       name,
       price: Number(price),

@@ -9,7 +9,7 @@ export const getRandomMenu = (
 
   filtered = filtered.filter((menu) => menu.price <= criteria.budget);
 
-  // 'all' means any source
+  // `all` means randomize across every food source.
   if (criteria.place !== 'all') {
     filtered = filtered.filter((menu) => menu.place === criteria.place);
   }

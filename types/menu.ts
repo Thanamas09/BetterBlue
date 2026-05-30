@@ -1,5 +1,9 @@
-export type PlaceType = '7-11' | 'canteen' | 'ordered' | 'cooking';
+export type FoodSourceType = '7-11' | 'canteen' | 'ordered' | 'cooking';
+export type PlaceType = FoodSourceType;
+export type PlaceFilterType = FoodSourceType | 'all';
 export type HungerLevelType = 'low' | 'medium' | 'high';
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other';
+export type StorageMode = 'cloud' | 'local';
 
 export interface Nutrition {
   carbs: string;
@@ -12,15 +16,17 @@ export interface MenuItem {
   id: string;
   name: string;
   price: number;
-  place: PlaceType;
+  place: FoodSourceType;
   hungerLevel: HungerLevelType;
   tags: string[];
   nutrition: Nutrition;
   reason: string;
   isDefault?: boolean;
   isCustom?: boolean;
-  source_menu_id?: string | null; // เพิ่มเก็บความสัมพันธ์ฝั่ง DB
+  source_menu_id?: string | null;
 }
+
+export type MenuDraft = Omit<MenuItem, 'id' | 'source_menu_id'>;
 
 export interface HistoryItem {
   id: string;
@@ -28,12 +34,16 @@ export interface HistoryItem {
   menuName: string;
   price: number;
   dateTime: string;
-  place?: string; // เพิ่มฟิลด์เสริมความต้องการ V1.1
+  place?: FoodSourceType | string;
+  budget?: number;
+  hungerLevel?: HungerLevelType;
+  mealType?: MealType;
+  storageMode?: StorageMode;
 }
 
 export interface FilterCriteria {
   budget: number;
-  place: PlaceType;
+  place: PlaceFilterType;
   hungerLevel: HungerLevelType;
   excludeTags: string[];
 }

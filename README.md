@@ -18,7 +18,7 @@ Not sure what to eat? Set your budget, pick a mood, and let BetterBlue suggest s
 
 ## Features in V1.3
 
-- Rewrote the "Order Confirmed" card into a proper **Meal Saved Summary Card** (no more restaurant wording)
+- Rewrote the old confirmation card into a proper **Meal Saved Summary Card**
 - Added **All Sources** option so you can randomize across every food source
 - Added **daily meal history grouping** by date with per-day totals
 - Added **today spending summary** on the home page hero
@@ -28,7 +28,7 @@ Not sure what to eat? Set your budget, pick a mood, and let BetterBlue suggest s
 - Improved empty states on the randomizer and history pages
 - Fixed build error caused by `next/font/google` — now uses a system font stack
 - Improved loading and error states with user-facing messages
-- Cleaned up all restaurant / order / checkout / delivery wording
+- Cleaned up restaurant / checkout / delivery wording so the app stays focused on personal meal tracking
 
 ---
 
@@ -45,7 +45,7 @@ Not sure what to eat? Set your budget, pick a mood, and let BetterBlue suggest s
 
 ```bash
 git clone <your-repo-url>
-cd BetterBlue
+cd BetterBlue-main
 npm install
 cp .env.example .env.local
 # Fill in NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY

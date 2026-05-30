@@ -32,8 +32,9 @@ export default function AuthForm({ type }: AuthFormProps) {
       }
       router.push('/');
       router.refresh();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'เกิดข้อผิดพลาดในการตรวจสอบบัญชี');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการตรวจสอบบัญชี';
+      setErrorMsg(message);
     } finally {
       setLoading(false);
     }

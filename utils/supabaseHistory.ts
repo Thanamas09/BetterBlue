@@ -1,7 +1,28 @@
 import { supabase } from '@/lib/supabase/client';
-import { MenuItem, HistoryItem, MealType, HungerLevelType } from '@/types/menu';
+import { FoodSourceType, HungerLevelType, MealType, MenuItem, HistoryItem } from '@/types/menu';
 
-// 1. ดึงประวัติการกิน
+const foodSources: FoodSourceType[] = ['7-11', 'canteen', 'ordered', 'cooking'];
+const hungerLevels: HungerLevelType[] = ['low', 'medium', 'high'];
+const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack', 'other'];
+
+const toFoodSource = (value: unknown): FoodSourceType | undefined => {
+  return typeof value === 'string' && foodSources.includes(value as FoodSourceType)
+    ? (value as FoodSourceType)
+    : undefined;
+};
+
+const toHungerLevel = (value: unknown): HungerLevelType | undefined => {
+  return typeof value === 'string' && hungerLevels.includes(value as HungerLevelType)
+    ? (value as HungerLevelType)
+    : undefined;
+};
+
+const toMealType = (value: unknown): MealType => {
+  return typeof value === 'string' && mealTypes.includes(value as MealType)
+    ? (value as MealType)
+    : 'other';
+};
+
 export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => {
   try {
     const { data, error } = await supabase
@@ -22,7 +43,7 @@ export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => 
           dateTime = new Date(h.eaten_at).toISOString();
         }
       } catch {
-        // keep default
+        // Keep current timestamp when the database value is malformed.
       }
 
       return {
@@ -30,13 +51,13 @@ export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => 
         menuId: h.menu_id || '',
         menuName: h.menu_name || 'เมนูไม่ระบุชื่อ',
         price: Number(h.price) || 0,
-        place: h.place || '',
+        place: toFoodSource(h.place),
         budget: h.budget ? Number(h.budget) : undefined,
-        hungerLevel: h.hunger_level as HungerLevelType | undefined,
-        mealType: (h.meal_type as MealType) || 'other',
+        hungerLevel: toHungerLevel(h.hunger_level),
+        mealType: toMealType(h.meal_type),
         dateTime,
-        storageMode: 'cloud' as const,
-      };
+        storageMode: 'cloud',
+      } satisfies HistoryItem;
     });
   } catch (err) {
     console.error('Fatal error fetching meal history:', err);
@@ -44,7 +65,6 @@ export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => 
   }
 };
 
-// 2. บันทึกประวัติการกินลง Cloud
 export const addMealHistory = async (
   userId: string,
   menu: MenuItem,
@@ -58,9 +78,9 @@ export const addMealHistory = async (
     menu_id: isValidUUID ? menu.id : null,
     menu_name: menu.name,
     price: menu.price,
-    place: menu.place || 'ordered',
+    place: menu.place,
     budget: extra?.budget ?? null,
-    hunger_level: menu.hungerLevel ?? null,
+    hunger_level: menu.hungerLevel,
     meal_type: extra?.mealType ?? 'other',
     eaten_at: new Date().toISOString(),
   });
@@ -71,7 +91,6 @@ export const addMealHistory = async (
   }
 };
 
-// 3. ล้างประวัติมื้ออาหาร
 export const clearMealHistory = async (userId: string) => {
   const { error } = await supabase
     .from('meal_history')
@@ -84,7 +103,6 @@ export const clearMealHistory = async (userId: string) => {
   }
 };
 
-// 4. ลบรายการเดียว
 export const deleteSingleMealHistory = async (userId: string, id: string) => {
   const { error } = await supabase
     .from('meal_history')

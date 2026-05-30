@@ -6,7 +6,7 @@ import Link from 'next/link';
 import AddMenuForm from '@/components/AddMenuForm';
 import { createCustomMenu } from '@/utils/supabaseMenus';
 import { supabase } from '@/lib/supabase/client';
-import { MenuItem } from '@/types/menu';
+import { MenuDraft } from '@/types/menu';
 
 export default function AddMenuPage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -23,17 +23,16 @@ export default function AddMenuPage() {
     });
   }, []);
 
-  // ฟังก์ชันรองรับการส่งข้อมูลจากฟอร์ม (กำหนด Type ชัดเจนป้องกันอาการเอ๋อ)
-  const handleAddMenu = async (formData: Omit<MenuItem, 'id' | 'isDefault' | 'isCustom'>) => {
+  const handleAddMenu = async (formData: MenuDraft) => {
     if (!userId) return;
     try {
       await createCustomMenu(userId, formData);
-      alert('🚀 บันทึกเมนูอาหารส่วนตัวขึ้นระบบคลาวด์สำเร็จ!');
+
       router.push('/menus');
       router.refresh();
     } catch (e) {
-      console.error(e);
-      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลลงฐานข้อมูล Supabase');
+      console.error('Failed to add menu:', e);
+      alert('เกิดข้อผิดพลาดในการบันทึกเมนูอาหาร กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -74,7 +73,7 @@ export default function AddMenuPage() {
 
       {/* เรียกใช้งาน Form Component พร้อมส่งฟังก์ชัน Handle ที่แปลง Type เรียบร้อย */}
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-        <AddMenuForm onAddMenu={(data: any) => handleAddMenu(data)} />
+        <AddMenuForm onAddMenu={handleAddMenu} />
       </div>
     </main>
   );

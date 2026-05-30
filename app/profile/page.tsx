@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 import { getVisibleMenus } from '@/utils/supabaseMenus';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [customCount, setCustomCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const router = useRouter();

@@ -53,7 +53,7 @@ export default function MenusPage() {
       setIsModalOpen(false);
       showFeedback('✏️ บันทึกการแก้ไขข้อมูลลง Cloud เรียบร้อย');
       loadMenus(userId);
-    } catch (e) {
+    } catch {
       alert('เกิดข้อผิดพลาดในการแก้ข้อมูล');
     }
   };
