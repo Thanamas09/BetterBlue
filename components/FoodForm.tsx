@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FilterCriteria, PlaceFilterType, HungerLevelType } from '@/types/menu';
 
 interface FoodFormProps {
   onRandom: (criteria: FilterCriteria) => void;
   onClear?: () => void;
-  isRandomized?: boolean; // 🎯 รับสถานะเช็คว่าฝั่งขวาได้สุ่มขึ้นมาแล้วหรือยัง
+  isRandomized?: boolean;
 }
 
 export default function FoodForm({ onRandom, onClear, isRandomized = false }: FoodFormProps) {
@@ -14,43 +14,38 @@ export default function FoodForm({ onRandom, onClear, isRandomized = false }: Fo
   const [place, setPlace] = useState<PlaceFilterType>('all');
   const [hungerLevel, setHungerLevel] = useState<HungerLevelType>('medium');
   const [excludeInput, setExcludeInput] = useState<string>('');
-  
-  // 🎯 State คุมการล็อกของปุ่มเริ่มสุ่มเมนูโดยเฉพาะ
-  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
-  // 🎯 กลไกเมื่อหน้าหลักสุ่มเมนูขึ้นมาแล้ว ให้ปุ่มเซ็ตล็อกตัวเอง
-  useEffect(() => {
-    if (isRandomized) {
-      setIsButtonDisabled(true);
-    } else {
-      setIsButtonDisabled(false);
-    }
-  }, [isRandomized]);
+  // ✅ บอสใช้ flag แทน state + useEffect เพื่อป้องกันการ Re-render ทับค่า
+  const [hasChangedSinceRandom, setHasChangedSinceRandom] = useState(false);
+  const isButtonDisabled = isRandomized && !hasChangedSinceRandom;
 
-  // 🎯 [ฟังก์ชันเด็ด] เมื่อผู้ใช้อัปเดตข้อมูลหรือเปลี่ยนค่าปุ่มใดๆ ในแถบซ้าย ให้ทำการปลดล็อกปุ่มเริ่มสุ่มทันที
   const handleInputChange = (updateAction: () => void) => {
-    updateAction(); // เปลี่ยนค่าฟิลด์นั้นๆ
-    setIsButtonDisabled(false); // ปลดล็อกปุ่มเริ่มสุ่มอาหาร
+    updateAction();
+    setHasChangedSinceRandom(true); // ✅ user แตะฟิลด์แล้ว → ปลดล็อกปุ่มเริ่มสุ่มทันที
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isButtonDisabled) return; // ดักทางพฤติกรรมกดเบิ้ล
 
     const excludeTags = excludeInput
       ? excludeInput.split(',').map((tag) => tag.trim()).filter(Boolean)
       : [];
-    
-    setIsButtonDisabled(true); // ล็อกปุ่มทันทีที่เริ่มสุ่ม
+
     onRandom({ budget: Number(budget) || 0, place, hungerLevel, excludeTags });
   };
 
-  const handleClear = () => {
+  const handleClear = (e?: React.MouseEvent) => {
+    // ✅ สั่งดักทาง Event เพื่อไม่ให้โดนฟอร์มหรือสถานะปุ่มอื่น ๆ มาหน่วงการทำงาน
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     setBudget(80);
     setPlace('all');
     setHungerLevel('medium');
     setExcludeInput('');
-    setIsButtonDisabled(false);
+    setHasChangedSinceRandom(false);
     onClear?.();
   };
 
@@ -90,7 +85,7 @@ export default function FoodForm({ onRandom, onClear, isRandomized = false }: Fo
             type="number"
             value={budget}
             onChange={(e) => handleInputChange(() => setBudget(Math.max(0, parseInt(e.target.value) || 0)))}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 py-3 pl-9 pr-4 text-base font-bold text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-all"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pr-4 pl-9 text-base font-bold text-slate-900 focus:outline-none focus:border-slate-900 focus:bg-white transition-all"
             placeholder="เช่น 80"
             required
             min={1}
@@ -160,8 +155,8 @@ export default function FoodForm({ onRandom, onClear, isRandomized = false }: Fo
       <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-100">
         <button
           type="button"
-          onClick={handleClear}
-          className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-3 px-4 rounded-xl transition-colors text-xs active:scale-95"
+          onClick={(e) => handleClear(e)} // ✅ ส่ง Click Event ไปเคลียร์สถานะทั้งหมดแบบตัดขาด
+          className="col-span-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-3 px-4 rounded-xl transition-colors text-xs active:scale-95 pointer-events-auto relative z-10" // ✅ เพิ่มเกราะเพื่อให้กดได้ทุกรณี
           suppressHydrationWarning
         >
           ล้างค่าใหม่

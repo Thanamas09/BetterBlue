@@ -80,33 +80,41 @@ export default function Navbar() {
           <div className="h-4 w-[1px] bg-slate-700 mx-1 hidden sm:block"></div>
 
           {user ? (
-            <div className="flex items-center gap-2 pl-1">
-              <Link href="/profile" className="hidden md:block text-xs text-slate-300 font-semibold hover:text-blue-400 transition-colors max-w-[120px] truncate">
-                {user.email}
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-3 py-1.5 rounded-lg transition-colors shadow-sm"
-              >
-                🚪 ออก
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 pl-1">
-              <Link
-                href="/login"
-                className="text-xs font-bold text-slate-300 hover:text-white px-2 py-1.5"
-              >
-                เข้าสู่ระบบ
-              </Link>
-              <Link
-                href="/register"
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-3 py-1.5 rounded-lg transition-all"
-              >
-                สมัครใช้งาน
-              </Link>
-            </div>
-          )}
+  <div className="flex items-center gap-2 pl-1">
+    {/* ⚙️ เปลี่ยนข้อความลิงก์ยาว ๆ บนคอมให้เป็นแท็บปุ่มตั้งค่าที่สอดคล้องกับหน้า Profile ใหม่อย่างสวยงาม */}
+    <Link 
+      href="/profile" 
+      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all duration-200 ${
+        pathname === '/profile'
+          ? 'bg-slate-800 text-blue-400 border border-blue-500/30'
+          : 'text-slate-300 hover:text-blue-400 hover:bg-slate-800'
+      }`}
+    >
+      ⚙️ ตั้งค่าระบบ
+    </Link>
+    <button
+      onClick={handleLogout}
+      className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-3 py-1.5 rounded-lg transition-colors shadow-sm active:scale-95"
+    >
+      🚪 ออก
+    </button>
+  </div>
+) : (
+  <div className="flex items-center gap-1 pl-1">
+    <Link
+      href="/login"
+      className="text-xs font-bold text-slate-300 hover:text-white px-2 py-1.5"
+    >
+      เข้าสู่ระบบ
+    </Link>
+    <Link
+      href="/register"
+      className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-3 py-1.5 rounded-lg transition-all"
+    >
+      สมัครใช้งาน
+    </Link>
+  </div>
+)}
         </div>
       </div>
     </nav>

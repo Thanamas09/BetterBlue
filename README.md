@@ -16,7 +16,7 @@ Not sure what to eat? Set your budget, evaluate your energy needs, and let Bette
 
 ---
 
-## Features in V1.4 (Latest Update) 🚀
+## Features in V1.4.2 (Latest Update) 🚀
 
 - **Advanced Infinite-Loop Reroller** — Completely decoupled the "Reject" (Banned permanently for the session) and "Reroll" (Shift to next eligible item) mechanisms, preventing the pool from prematurely draining and enabling an elegant continuous carousel.
 - **Dynamic Input-Driven Form Locking** — Implemented an asynchronous state listener on the primary randomizer form. The main "Start Randomizing" button locks dynamically upon generation to block duplicated submission chains, instantly re-activating the moment *any* criteria configuration is modified.
