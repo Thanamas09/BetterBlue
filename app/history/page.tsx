@@ -8,10 +8,10 @@ import {
   deleteLocalFallbackHistoryItem,
   getLocalFallbackHistory,
 } from '@/utils/storage';
-import { supabase } from '@/lib/supabase/client';
 import { Toast, useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import Link from 'next/link';
+import { getSessionUserId } from '@/utils/supabaseHelpers';
 
 const translatePlace = (p?: string) => {
   if (!p) return '';
@@ -70,12 +70,15 @@ export default function HistoryPage() {
 
   useEffect(() => {
     let isMounted = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+
+    const initialize = async () => {
+      const uid = await getSessionUserId();
       if (!isMounted) return;
-      const uid = session?.user?.id;
-      setUserId(uid);
-      loadHistory(uid);
-    });
+      setUserId(uid ?? undefined);
+      loadHistory(uid ?? undefined);
+    };
+
+    initialize();
     return () => { isMounted = false; };
   }, [loadHistory]);
 

@@ -1,27 +1,30 @@
 import { supabase } from '@/lib/supabase/client';
-import { FoodSourceType, HungerLevelType, MealType, MenuItem, HistoryItem } from '@/types/menu';
+import { MealType, MenuItem, HistoryItem } from '@/types/menu';
+import type { Database } from '@/types/supabase';
+import {
+  isUUID,
+  logSupabaseError,
+  throwIfSupabaseError,
+  parseDateString,
+  parseNumber,
+  parseString,
+  toFoodSource,
+  toHungerLevel,
+  toMealType,
+} from '@/utils/supabaseHelpers';
 
-const foodSources: FoodSourceType[] = ['7-11', 'canteen', 'ordered', 'cooking'];
-const hungerLevels: HungerLevelType[] = ['low', 'medium', 'high'];
-const mealTypes: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack', 'other'];
-
-const toFoodSource = (value: unknown): FoodSourceType | undefined => {
-  return typeof value === 'string' && foodSources.includes(value as FoodSourceType)
-    ? (value as FoodSourceType)
-    : undefined;
-};
-
-const toHungerLevel = (value: unknown): HungerLevelType | undefined => {
-  return typeof value === 'string' && hungerLevels.includes(value as HungerLevelType)
-    ? (value as HungerLevelType)
-    : undefined;
-};
-
-const toMealType = (value: unknown): MealType => {
-  return typeof value === 'string' && mealTypes.includes(value as MealType)
-    ? (value as MealType)
-    : 'other';
-};
+const parseHistoryRow = (row: Database['public']['Tables']['meal_history']['Row']): HistoryItem => ({
+  id: parseString(row.id),
+  menuId: parseString(row.menu_id),
+  menuName: parseString(row.menu_name, 'เมนูไม่ระบุชื่อ'),
+  price: parseNumber(row.price, 0),
+  place: toFoodSource(row.place),
+  budget: row.budget === undefined || row.budget === null ? undefined : parseNumber(row.budget),
+  hungerLevel: toHungerLevel(row.hunger_level),
+  mealType: toMealType(row.meal_type),
+  dateTime: parseDateString(row.eaten_at, new Date().toISOString()),
+  storageMode: 'cloud',
+});
 
 export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => {
   try {
@@ -32,35 +35,13 @@ export const getMealHistory = async (userId: string): Promise<HistoryItem[]> => 
       .order('eaten_at', { ascending: false });
 
     if (error) {
-      console.warn('Supabase reading history error:', error.message);
+      logSupabaseError('reading history', error);
       return [];
     }
 
-    return (data || []).map((h) => {
-      let dateTime = new Date().toISOString();
-      try {
-        if (h.eaten_at) {
-          dateTime = new Date(h.eaten_at).toISOString();
-        }
-      } catch {
-        // Keep current timestamp when the database value is malformed.
-      }
-
-      return {
-        id: h.id,
-        menuId: h.menu_id || '',
-        menuName: h.menu_name || 'เมนูไม่ระบุชื่อ',
-        price: Number(h.price) || 0,
-        place: toFoodSource(h.place),
-        budget: h.budget ? Number(h.budget) : undefined,
-        hungerLevel: toHungerLevel(h.hunger_level),
-        mealType: toMealType(h.meal_type),
-        dateTime,
-        storageMode: 'cloud',
-      } satisfies HistoryItem;
-    });
+    return (data || []).map(parseHistoryRow);
   } catch (err) {
-    console.error('Fatal error fetching meal history:', err);
+    logSupabaseError('fetching meal history', err);
     return [];
   }
 };
@@ -70,12 +51,9 @@ export const addMealHistory = async (
   menu: MenuItem,
   extra?: { budget?: number; mealType?: MealType }
 ) => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const isValidUUID = uuidRegex.test(menu.id);
-
-  const { error } = await supabase.from('meal_history').insert({
+  const payload: Database['public']['Tables']['meal_history']['Insert'] = {
     user_id: userId,
-    menu_id: isValidUUID ? menu.id : null,
+    menu_id: isUUID(menu.id) ? menu.id : null,
     menu_name: menu.name,
     price: menu.price,
     place: menu.place,
@@ -83,12 +61,11 @@ export const addMealHistory = async (
     hunger_level: menu.hungerLevel,
     meal_type: extra?.mealType ?? 'other',
     eaten_at: new Date().toISOString(),
-  });
+  };
+  // @ts-expect-error Supabase.from() generic type inference - payloads are strongly typed
+  const { error } = await supabase.from('meal_history').insert([payload]);
 
-  if (error) {
-    console.error('Error saving history to Supabase:', error.message);
-    throw error;
-  }
+  throwIfSupabaseError('saving history', error);
 };
 
 export const clearMealHistory = async (userId: string) => {
@@ -97,10 +74,7 @@ export const clearMealHistory = async (userId: string) => {
     .delete()
     .eq('user_id', userId);
 
-  if (error) {
-    console.error('Error clearing history from Supabase:', error.message);
-    throw error;
-  }
+  throwIfSupabaseError('clearing history', error);
 };
 
 export const deleteSingleMealHistory = async (userId: string, id: string) => {
@@ -110,8 +84,5 @@ export const deleteSingleMealHistory = async (userId: string, id: string) => {
     .eq('id', id)
     .eq('user_id', userId);
 
-  if (error) {
-    console.error('Error deleting single history item:', error.message);
-    throw error;
-  }
+  throwIfSupabaseError('deleting history item', error);
 };

@@ -9,7 +9,7 @@ import { getRandomMenu } from '@/utils/randomMenu';
 import { getVisibleMenus } from '@/utils/supabaseMenus';
 import { addMealHistory } from '@/utils/supabaseHistory';
 import { addLocalFallbackHistory } from '@/utils/storage';
-import { supabase } from '@/lib/supabase/client';
+import { getSessionUser } from '@/utils/supabaseHelpers';
 
 export default function Home() {
   const [userId, setUserId] = useState<string | undefined>(undefined);
@@ -31,14 +31,11 @@ export default function Home() {
   useEffect(() => {
     const syncAuthState = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const currentUid = session?.user?.id;
-        setUserId(currentUid);
-        setUserEmail(session?.user?.email || null);
+        const currentUser = await getSessionUser();
+        setUserId(currentUser?.id ?? undefined);
+        setUserEmail(currentUser?.email ?? null);
 
-        const loaded = await getVisibleMenus(currentUid);
+        const loaded = await getVisibleMenus(currentUser?.id);
         setAllMenus(loaded);
       } catch (error) {
         console.error('Error syncing auth or loading menus:', error);
@@ -52,7 +49,7 @@ export default function Home() {
 
   // ฟังก์ชันส่วนกลางสำหรับเรียกตัวสุ่มเมนูอาหาร
   const pickMenu = (criteria: FilterCriteria, excluded: string[]) => {
-    const match = getRandomMenu([...allMenus], criteria, excluded);
+    const match = getRandomMenu(allMenus, criteria, excluded);
     setSelectedMenu(match);
     setNoMatch(!match);
   };
@@ -76,7 +73,7 @@ export default function Home() {
     const tempExcluded = selectedMenu ? [...bannedIds, selectedMenu.id] : bannedIds;
     
     // ส่งรายการไปตรวจสอบสุ่มหาอาหารจานใหม่
-    const match = getRandomMenu([...allMenus], activeCriteria, tempExcluded);
+    const match = getRandomMenu(allMenus, activeCriteria, tempExcluded);
     
     if (match) {
       setSelectedMenu(match);
@@ -84,7 +81,7 @@ export default function Home() {
     } else {
       // 💡 ในกรณีสุ่มวนจนครบหมดคลังจริงๆ ให้เอากลุ่มอาหารที่ Reroll กลับมาสุ่มวน Loop ใหม่ได้เรื่อยๆ (Infinity Loop)
       // โดยยังคงรักษารายการอาหารที่โดนแบนถาวร (Banned) เอาไว้เหมือนเดิม
-      const resetMatch = getRandomMenu([...allMenus], activeCriteria, bannedIds);
+      const resetMatch = getRandomMenu(allMenus, activeCriteria, bannedIds);
       setSelectedMenu(resetMatch);
       setNoMatch(!resetMatch);
     }

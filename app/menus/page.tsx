@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import MenuCard from '@/components/MenuCard';
 import EditMenuModal from '@/components/EditMenuModal';
 import { MenuItem } from '@/types/menu';
 import { getVisibleMenus, updateUserMenu, overrideDefaultMenu, deleteMenu } from '@/utils/supabaseMenus';
-import { supabase } from '@/lib/supabase/client';
+import { getSessionUserId } from '@/utils/supabaseHelpers';
 import Link from 'next/link';
 
 export default function MenusPage() {
@@ -25,11 +25,13 @@ export default function MenusPage() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const uid = session?.user?.id;
-      setUserId(uid);
-      loadMenus(uid);
-    });
+    const initialize = async () => {
+      const uid = await getSessionUserId();
+      setUserId(uid ?? undefined);
+      loadMenus(uid ?? undefined);
+    };
+
+    initialize();
   }, []);
 
   const handleEditClick = (menu: MenuItem) => {
@@ -67,9 +69,14 @@ export default function MenusPage() {
     if (!target) return;
 
     if (confirm(`คุณแน่ใจใช่ไหมว่าจะลบ/ซ่อนเมนู "${target.name}"?`)) {
-      await deleteMenu(userId, target);
-      showFeedback('🗑️ จัดการลบ/ซ่อนเมนูอาหารเรียบร้อย');
-      loadMenus(userId);
+      try {
+        await deleteMenu(userId, target);
+        showFeedback('🗑️ จัดการลบ/ซ่อนเมนูอาหารเรียบร้อย');
+        loadMenus(userId);
+      } catch (err) {
+        console.error('Error deleting menu:', err);
+        alert('เกิดข้อผิดพลาดในการลบเมนูอาหาร กรุณาลองใหม่อีกครั้ง');
+      }
     }
   };
 
@@ -78,11 +85,14 @@ export default function MenusPage() {
     setTimeout(() => setFeedbackMessage(''), 3000);
   };
 
-  const filteredMenus = menus.filter((m) => {
-    return m.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (placeFilter === 'all' || m.place === placeFilter) &&
-      (hungerFilter === 'all' || m.hungerLevel === hungerFilter);
-  });
+  const filteredMenus = useMemo(() => {
+    const normalizedSearch = searchTerm.toLowerCase();
+    return menus.filter((m) => {
+      return m.name.toLowerCase().includes(normalizedSearch) &&
+        (placeFilter === 'all' || m.place === placeFilter) &&
+        (hungerFilter === 'all' || m.hungerLevel === hungerFilter);
+    });
+  }, [menus, searchTerm, placeFilter, hungerFilter]);
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6 relative">

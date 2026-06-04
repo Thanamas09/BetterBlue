@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import { getSessionUser } from '@/utils/supabaseHelpers';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -12,12 +13,13 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // โหลด Session แรกเริ่ม
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    const initialize = async () => {
+      const currentUser = await getSessionUser();
+      setUser(currentUser ?? null);
+    };
 
-    // ดักฟังการสลับเปลี่ยนสถานะของ User แบบ Real-time
+    initialize();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });

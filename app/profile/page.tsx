@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 import { getVisibleMenus } from '@/utils/supabaseMenus';
 import { useRouter } from 'next/navigation';
+import { getSessionUser } from '@/utils/supabaseHelpers';
 
 interface ShortMenu {
   id: string;
@@ -32,12 +33,11 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchProfileData = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const currentUser = await getSessionUser();
+      if (!currentUser) {
         router.push('/login');
         return;
       }
-      const currentUser = session.user;
       setUser(currentUser);
       
       // ดึงชื่อเล่นจาก user_metadata (ถ้ามี) ถ้าไม่มีให้ดึงจากชื่ออีเมลก่อน @ 
@@ -46,12 +46,12 @@ export default function ProfilePage() {
 
       // ดึงข้อมูลรายการเมนูอาหารส่วนตัว
       const allMenus = await getVisibleMenus(currentUser.id);
-      const userCustomMenus = allMenus
-        .filter((m: any) => m.isCustom)
-        .map((m: any) => ({
+      const userCustomMenus: ShortMenu[] = allMenus
+        .filter((m) => m.isCustom)
+        .map((m) => ({
           id: m.id,
           name: m.name,
-          price: m.price || m.budget || 0,
+          price: m.price,
           place: m.place
         }));
         
@@ -108,7 +108,7 @@ export default function ProfilePage() {
     setDeletingId(menuId);
     try {
       const { error } = await supabase
-        .from('menus')
+        .from('user_menus')
         .delete()
         .eq('id', menuId);
 
@@ -225,7 +225,7 @@ export default function ProfilePage() {
             <form onSubmit={handleSavePreferences} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-2">
-                  งบประมาณเริ่มต้นต่อมื้อเมื่อกด "ล้างค่าใหม่" (บาท)
+                    งบประมาณเริ่มต้นต่อมื้อเมื่อกด &apos;ล้างค่าใหม่&apos; (บาท)
                 </label>
                 <div className="flex gap-3 max-w-sm">
                   <div className="relative flex-1">

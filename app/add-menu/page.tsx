@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AddMenuForm from '@/components/AddMenuForm';
 import { createCustomMenu } from '@/utils/supabaseMenus';
-import { supabase } from '@/lib/supabase/client';
+import { getSessionUserId } from '@/utils/supabaseHelpers';
 import { MenuDraft } from '@/types/menu';
 
 export default function AddMenuPage() {
@@ -14,13 +14,13 @@ export default function AddMenuPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // ตรวจสอบ Session การเข้าสู่ระบบเมื่อเข้ามาที่หน้านี้
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUserId(session.user.id);
-      }
+    const initialize = async () => {
+      const uid = await getSessionUserId();
+      setUserId(uid);
       setLoading(false);
-    });
+    };
+
+    initialize();
   }, []);
 
   const handleAddMenu = async (formData: MenuDraft) => {
